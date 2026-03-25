@@ -26,7 +26,7 @@ if st.sidebar.button("➕ New Chat"):
 user_chats = get_user_chats(username)
 
 for chat_id, chat_data in user_chats.items():
-    if st.sidebar.button(chat_data["title"]):
+    if st.sidebar.button(chat_data["title"], key=chat_id):
         st.session_state.current_chat = chat_id
 
 messages = get_current_messages(username)
