@@ -1,0 +1,78 @@
+import mysql.connector
+import os
+
+def get_connection():
+    return mysql.connector.connect(
+        host="localhost",
+        user="chatuser",
+        password="chatpass123",
+        database="ai_chat"
+        # user="root",
+        # unix_socket="/var/run/mysqld/mysqld.sock",
+        # database="ai_chat"
+        # host="localhost",
+        # user="root",
+        # password=os.getenv("MYSQL_PASSWORD"),
+        # database="ai_chat"
+    )
+
+def save_message(chat_id, role, content):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = """
+    INSERT INTO messages (chat_id, role, content)
+    VALUES (%s, %s, %s)
+    """
+    cursor.execute(query, (chat_id, role, content))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def load_messages(chat_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = "SELECT role, content FROM messages WHERE chat_id=%s"
+    cursor.execute(query, (chat_id,))
+
+    result = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return result
+
+
+def create_chat(user_id, title):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = "INSERT INTO chats (user_id, title) VALUES (%s, %s)"
+    cursor.execute(query, (user_id, title))
+
+    conn.commit()
+    chat_id = cursor.lastrowid
+
+    cursor.close()
+    conn.close()
+
+    return chat_id
+
+def get_user_chats(user_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = "SELECT id, title FROM chats WHERE user_id=%s"
+    cursor.execute(query, (user_id,))
+
+    chats = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return chats
+
+
+

@@ -1,8 +1,12 @@
+
 import streamlit as st
 from auth.login import login
-from utils.session import (
-    init_session, create_new_chat,
-    get_user_chats, get_current_messages, add_message
+from services.chat_service import (
+    start_new_chat,
+    add_user_message,
+    add_ai_message,
+    fetch_messages,
+    fetch_user_chats
 )
 from services.llm_service import get_ai_response
 
@@ -12,24 +16,35 @@ st.title("AMIITSINGH AI Chat Room")
 if not login():
     st.stop()
 
-username = st.session_state.user
-st.sidebar.write(f"Logged in as: {username}")
+# 🔹 TEMP: user_id mapping
+user_id = 1   # later replace with DB user id
 
-init_session()
+# session init
+if "current_chat" not in st.session_state:
+    st.session_state.current_chat = None
 
-# 🔹 Sidebar - Chat list
+# sidebar
 st.sidebar.subheader("Chats")
 
 if st.sidebar.button("➕ New Chat"):
-    create_new_chat(username)
+    chat_id = start_new_chat(user_id)
+    st.session_state.current_chat = chat_id
 
-user_chats = get_user_chats(username)
+# load chats
+user_chats = fetch_user_chats(user_id)
 
-for chat_id, chat_data in user_chats.items():
-    if st.sidebar.button(chat_data["title"], key=chat_id):
-        st.session_state.current_chat = chat_id
+for chat in user_chats:
+    if st.sidebar.button(chat["title"], key=chat["id"]):
+        st.session_state.current_chat = chat["id"]
 
-messages = get_current_messages(username)
+# ensure chat exists
+if not st.session_state.current_chat and user_chats:
+    st.session_state.current_chat = user_chats[0]["id"]
+
+# load messages
+messages = []
+if st.session_state.current_chat:
+    messages = fetch_messages(st.session_state.current_chat)
 
 # display messages
 for msg in messages:
@@ -39,15 +54,80 @@ for msg in messages:
 # input
 user_input = st.chat_input("Ask a question")
 
-if user_input:
-    add_message(username, "user", user_input)
+if user_input and st.session_state.current_chat:
+
+    add_user_message(st.session_state.current_chat, user_input)
 
     with st.chat_message("user"):
         st.write(user_input)
 
-    ai_reply = get_ai_response(messages)
+    ai_reply = get_ai_response(messages + [{"role": "user", "content": user_input}])
 
-    add_message(username, "assistant", ai_reply)
+    add_ai_message(st.session_state.current_chat, ai_reply)
 
     with st.chat_message("assistant"):
         st.write(ai_reply)
+
+    st.rerun()
+
+
+
+
+
+
+
+
+# import streamlit as st
+# from auth.login import login
+# from utils.session import (
+#     init_session, create_new_chat,
+#     get_user_chats, get_current_messages, add_message
+# )
+# from services.llm_service import get_ai_response
+# from services.db_service import save_message, load_messages
+
+# st.title("AMIITSINGH AI Chat Room")
+
+# # login
+# if not login():
+#     st.stop()
+
+# username = st.session_state.user
+# st.sidebar.write(f"Logged in as: {username}")
+
+# init_session()
+
+# # 🔹 Sidebar - Chat list
+# st.sidebar.subheader("Chats")
+
+# if st.sidebar.button("➕ New Chat"):
+#     create_new_chat(username)
+
+# user_chats = get_user_chats(username)
+
+# for chat_id, chat_data in user_chats.items():
+#     if st.sidebar.button(chat_data["title"]):
+#         st.session_state.current_chat = chat_id
+
+# messages = get_current_messages(username)
+
+# # display messages
+# for msg in messages:
+#     with st.chat_message(msg["role"]):
+#         st.write(msg["content"])
+
+# # input
+# user_input = st.chat_input("Ask a question")
+
+# if user_input:
+#     add_message(username, "user", user_input)
+
+#     with st.chat_message("user"):
+#         st.write(user_input)
+
+#     ai_reply = get_ai_response(messages)
+
+#     add_message(username, "assistant", ai_reply)
+
+#     with st.chat_message("assistant"):
+#         st.write(ai_reply)
