@@ -4,8 +4,8 @@ import os
 def get_connection():
     return mysql.connector.connect(
         host="localhost",
-        user="chatuser",
-        password="chatpass123",
+        user="root",
+        password="password",
         database="ai_chat"
         # user="root",
         # unix_socket="/var/run/mysqld/mysqld.sock",

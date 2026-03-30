@@ -11,7 +11,6 @@ from services.chat_service import (
 from services.llm_service import get_ai_response
 
 st.title("AMIITSINGH AI Chat Room")
-
 # login
 if not login():
     st.stop()
@@ -53,24 +52,39 @@ for msg in messages:
 
 # input
 user_input = st.chat_input("Ask a question")
+#user_input = st.chat_input("Ask a question")
 
 if user_input and st.session_state.current_chat:
 
+    # 1. save user message
     add_user_message(st.session_state.current_chat, user_input)
+    # update title only if first message
+    messages = fetch_messages(st.session_state.current_chat)
 
-    with st.chat_message("user"):
-        st.write(user_input)
+if len(messages) == 1:  # first message only
+    from services.chat_service import update_chat_title
+    update_chat_title(st.session_state.current_chat, user_input[:30])
 
-    ai_reply = get_ai_response(messages + [{"role": "user", "content": user_input}])
+    # 2. fetch updated messages
+    updated_messages = fetch_messages(st.session_state.current_chat)
 
+    # 3. get AI response
+    ai_reply = get_ai_response(updated_messages)
+
+    # DEBUG (optional)
+    st.write("DEBUG AI:", ai_reply)
+
+    # 4. save AI response
     add_ai_message(st.session_state.current_chat, ai_reply)
 
-    with st.chat_message("assistant"):
-        st.write(ai_reply)
+    # 5. FORCE reload UI
+    st.session_state.messages = fetch_messages(st.session_state.current_chat)
 
     st.rerun()
 
+#ai_reply = get_ai_response(messages + [{"role": "user", "content": user_input}])
 
+#st.write("DEBUG AI:", ai_reply)   # 👈 ADD THIS
 
 
 

@@ -23,3 +23,16 @@ def fetch_messages(chat_id):
 
 def fetch_user_chats(user_id):
     return get_user_chats(user_id)
+
+def update_chat_title(chat_id, title):
+    from services.db_service import get_connection
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = "UPDATE chats SET title=%s WHERE id=%s"
+    cursor.execute(query, (title, chat_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
