@@ -7,8 +7,7 @@ from services.db_service import (
 
 def start_new_chat(user_id):
     return create_chat(user_id, "New Chat")
-
-
+    
 def add_user_message(chat_id, message):
     save_message(chat_id, "user", message)
 

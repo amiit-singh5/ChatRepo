@@ -34,7 +34,7 @@ def load_messages(chat_id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    query = "SELECT role, content FROM messages WHERE chat_id=%s"
+    query = "SELECT role, content FROM messages WHERE chat_id=%s ORDER BY id ASC"
     cursor.execute(query, (chat_id,))
 
     result = cursor.fetchall()
