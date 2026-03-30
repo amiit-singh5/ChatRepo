@@ -43,14 +43,60 @@ if st.sidebar.button("➕ New Chat"):
 user_chats = fetch_user_chats(user_id)
 
 for chat in user_chats:
-    if st.sidebar.button(chat["title"], key=f"chat_{chat['id']}"):
-        st.session_state.current_chat = chat["id"]
+    col1, col2 = st.sidebar.columns([0.8, 0.2])
+
+    # Chat title (click to load)
+    with col1:
+        if st.button(chat["title"], key=f"chat_{chat['id']}"):
+            st.session_state.current_chat = chat["id"]
+            st.session_state.file_processed = False
+            st.session_state.show_menu = False
+
+    # 3-dot menu
+    with col2:
+        with st.popover("⋮", use_container_width=True):
+
+            # 🔗 Share
+            if st.button("🔗 Share", key=f"share_{chat['id']}"):
+                share_link = f"http://localhost:8501/?chat_id={chat['id']}"
+                st.write("Copy link:")
+                st.code(share_link)
+
+            # ✏️ Rename
+            new_name = st.text_input(
+                "Rename",
+                value=chat["title"],
+                key=f"rename_input_{chat['id']}"
+            )
+            if st.button("✅ Save", key=f"rename_{chat['id']}"):
+                from services.chat_service import update_chat_title
+                update_chat_title(chat["id"], new_name)
+                st.rerun()
+
+            # 🗑 Delete
+            if st.button("🗑 Delete", key=f"delete_{chat['id']}"):
+                from services.db_service import delete_chat
+                delete_chat(chat["id"])
+
+                # if current chat deleted → reset
+                if st.session_state.current_chat == chat["id"]:
+                    st.session_state.current_chat = None
+
+                st.rerun()
+
+            # 📦 Archive
+            if st.button("📦 Archive", key=f"archive_{chat['id']}"):
+                from services.db_service import archive_chat
+                archive_chat(chat["id"])
+                st.rerun()
         st.session_state.file_processed = False
         st.session_state.show_menu = False
 
 # ensure chat exists
-if not st.session_state.current_chat and user_chats:
-    st.session_state.current_chat = user_chats[0]["id"]
+if st.session_state.current_chat is None:
+    st.session_state.current_chat = start_new_chat(user_id)
+# if not st.session_state.current_chat and user_chats:
+#     st.session_state.current_chat = user_chats[0]["id"]
 
 # ---------------- LOAD MESSAGES ----------------
 messages = []

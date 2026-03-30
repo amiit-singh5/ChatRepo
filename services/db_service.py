@@ -64,7 +64,11 @@ def get_user_chats(user_id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    query = "SELECT id, title FROM chats WHERE user_id=%s"
+    query = """
+            SELECT id, title 
+            FROM chats 
+            WHERE user_id=%s AND archived=FALSE
+    """
     cursor.execute(query, (user_id,))
 
     chats = cursor.fetchall()
@@ -73,6 +77,30 @@ def get_user_chats(user_id):
     conn.close()
 
     return chats
+
+def delete_chat(chat_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM messages WHERE chat_id=%s", (chat_id,))
+    cursor.execute("DELETE FROM chats WHERE id=%s", (chat_id,))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def archive_chat(chat_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE chats SET archived=TRUE WHERE id=%s",
+        (chat_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 
 
