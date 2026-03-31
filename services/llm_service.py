@@ -7,8 +7,11 @@ client = OpenAI(
 )
 
 def get_ai_response(messages):
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=messages
-    )
-    return response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=messages
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error: {str(e)}"

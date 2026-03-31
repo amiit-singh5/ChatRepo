@@ -4,8 +4,8 @@ import os
 def get_connection():
     return mysql.connector.connect(
         host="localhost",
-        user="chatuser",
-        password="chatpass123",
+        user="root",
+        password="password",
         database="ai_chat"
         # user="root",
         # unix_socket="/var/run/mysqld/mysqld.sock",
@@ -34,7 +34,7 @@ def load_messages(chat_id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    query = "SELECT role, content FROM messages WHERE chat_id=%s"
+    query = "SELECT role, content FROM messages WHERE chat_id=%s ORDER BY id ASC"
     cursor.execute(query, (chat_id,))
 
     result = cursor.fetchall()
@@ -64,7 +64,11 @@ def get_user_chats(user_id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    query = "SELECT id, title FROM chats WHERE user_id=%s"
+    query = """
+            SELECT id, title 
+            FROM chats 
+            WHERE user_id=%s AND archived=FALSE
+    """
     cursor.execute(query, (user_id,))
 
     chats = cursor.fetchall()
@@ -73,6 +77,61 @@ def get_user_chats(user_id):
     conn.close()
 
     return chats
+
+def delete_chat(chat_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM messages WHERE chat_id=%s", (chat_id,))
+    cursor.execute("DELETE FROM chats WHERE id=%s", (chat_id,))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def archive_chat(chat_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE chats SET archived=TRUE WHERE id=%s",
+        (chat_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_archived_chats(user_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+    SELECT id, title 
+    FROM chats 
+    WHERE user_id=%s AND archived=TRUE
+    """
+
+    cursor.execute(query, (user_id,))
+    chats = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return chats
+
+def restore_chat(chat_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE chats SET archived=FALSE WHERE id=%s",
+        (chat_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 
 
