@@ -9,6 +9,8 @@ from services.chat_service import (
     fetch_archived_chats
 )
 from services.llm_service import get_ai_response
+from services.db_service import get_user_id
+
 
 st.title("AMIITSINGH AI Chat Room")
 
@@ -16,7 +18,11 @@ st.title("AMIITSINGH AI Chat Room")
 if not login():
     st.stop()
 
-user_id = 1
+
+
+username = st.session_state.user
+user_id = get_user_id(username)
+#user_id = st.session_state.user_id
 
 # ---------------- SESSION INIT ----------------
 if "process_file" not in st.session_state:
