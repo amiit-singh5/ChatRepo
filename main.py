@@ -30,12 +30,26 @@ if "show_menu" not in st.session_state:
 
 # ---------------- SIDEBAR ----------------
 st.sidebar.subheader("Chats")
-st.sidebar.subheader("Archived Chats")
+#st.sidebar.subheader("Archived Chats")
 archived_chats = fetch_archived_chats(user_id)
 
 for chat in archived_chats:
-    if st.sidebar.button(f"📦 {chat['title']}", key=f"arch_{chat['id']}"):
-        st.session_state.current_chat = chat["id"]
+    col1, col2 = st.sidebar.columns([0.7, 0.3])
+
+    # Just display title (NOT clickable)
+    with col1:
+        st.markdown(f"📦 {chat['title']}")
+
+    # Restore button
+    with col2:
+        if st.button("♻️", key=f"restore_{chat['id']}"):
+            from services.db_service import restore_chat
+            restore_chat(chat["id"])
+
+            # 🔥 DO NOT open chat automatically
+            # Just refresh UI
+            st.rerun()
+st.sidebar.subheader("📦 Archived Chats")
 if st.sidebar.button("➕ New Chat"):
     chat_id = start_new_chat(user_id)
     st.session_state.current_chat = chat_id
