@@ -16,73 +16,51 @@ st.title("AMIITSINGH AI Chat Room")
 if not login():
     st.stop()
 
-user_id = 1  # keep stable for now
+user_id = 1
 
 # ---------------- SESSION INIT ----------------
+if "process_file" not in st.session_state:
+    st.session_state.process_file = False
+
+if "file_content" not in st.session_state:
+    st.session_state.file_content = None
+
 if "current_chat" not in st.session_state:
     st.session_state.current_chat = None
-
-if "file_processed" not in st.session_state:
-    st.session_state.file_processed = False
 
 if "show_menu" not in st.session_state:
     st.session_state.show_menu = False
 
+if "last_processed" not in st.session_state:
+    st.session_state.last_processed = None
+
 # ---------------- SIDEBAR ----------------
 st.sidebar.subheader("Chats")
-#st.sidebar.subheader("Archived Chats")
-archived_chats = fetch_archived_chats(user_id)
 
-for chat in archived_chats:
-    col1, col2 = st.sidebar.columns([0.7, 0.3])
-
-    # Just display title (NOT clickable)
-    with col1:
-        st.markdown(f"📦 {chat['title']}")
-
-    # Restore button
-    with col2:
-        if st.button("♻️", key=f"restore_{chat['id']}"):
-            from services.db_service import restore_chat
-            restore_chat(chat["id"])
-
-            # 🔥 DO NOT open chat automatically
-            # Just refresh UI
-            st.rerun()
-st.sidebar.subheader("📦 Archived Chats")
+# ➕ New Chat
 if st.sidebar.button("➕ New Chat"):
     chat_id = start_new_chat(user_id)
     st.session_state.current_chat = chat_id
-
-    st.session_state.file_processed = False
     st.session_state.show_menu = False
+    st.rerun()
 
-    st.rerun()  # 🔥 important
-
-# load chats
+# Active chats
 user_chats = fetch_user_chats(user_id)
 
 for chat in user_chats:
     col1, col2 = st.sidebar.columns([0.8, 0.2])
 
-    # Chat title (click to load)
     with col1:
         if st.button(chat["title"], key=f"chat_{chat['id']}"):
             st.session_state.current_chat = chat["id"]
-            st.session_state.file_processed = False
             st.session_state.show_menu = False
 
-    # 3-dot menu
     with col2:
-        with st.popover("⋮", use_container_width=True):
+        with st.popover("⋮"):
 
-            # 🔗 Share
             if st.button("🔗 Share", key=f"share_{chat['id']}"):
-                share_link = f"http://localhost:8501/?chat_id={chat['id']}"
-                st.write("Copy link:")
-                st.code(share_link)
+                st.code(f"http://localhost:8501/?chat_id={chat['id']}")
 
-            # ✏️ Rename
             new_name = st.text_input(
                 "Rename",
                 value=chat["title"],
@@ -93,46 +71,48 @@ for chat in user_chats:
                 update_chat_title(chat["id"], new_name)
                 st.rerun()
 
-            # 🗑 Delete
             if st.button("🗑 Delete", key=f"delete_{chat['id']}"):
                 from services.db_service import delete_chat
                 delete_chat(chat["id"])
-
-                # if current chat deleted → reset
                 if st.session_state.current_chat == chat["id"]:
                     st.session_state.current_chat = None
-
                 st.rerun()
 
-            # 📦 Archive
             if st.button("📦 Archive", key=f"archive_{chat['id']}"):
                 from services.db_service import archive_chat
                 archive_chat(chat["id"])
                 st.rerun()
-            if st.button("♻️ Restore", key=f"restore_{chat['id']}"):
-               from services.db_service import restore_chat
-               restore_chat(chat["id"])
-               st.rerun()
-        st.session_state.file_processed = False
-        st.session_state.show_menu = False
 
-# ensure chat exists
+# -------- Archived Section --------
+st.sidebar.divider()
+st.sidebar.subheader("📦 Archived Chats")
+
+archived_chats = fetch_archived_chats(user_id)
+
+for chat in archived_chats:
+    col1, col2 = st.sidebar.columns([0.7, 0.3])
+
+    with col1:
+        st.markdown(f"📦 {chat['title']}")
+
+    with col2:
+        if st.button("♻️", key=f"restore_{chat['id']}"):
+            from services.db_service import restore_chat
+            restore_chat(chat["id"])
+            st.rerun()
+
+# ---------------- ENSURE CHAT ----------------
 if st.session_state.current_chat is None:
     st.session_state.current_chat = start_new_chat(user_id)
-# if not st.session_state.current_chat and user_chats:
-#     st.session_state.current_chat = user_chats[0]["id"]
 
 # ---------------- LOAD MESSAGES ----------------
-messages = []
-if st.session_state.current_chat:
-    messages = fetch_messages(st.session_state.current_chat)
+messages = fetch_messages(st.session_state.current_chat)
 
-# display messages
 for msg in messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# ---------------- INPUT + BUTTON ----------------
+# ---------------- INPUT ----------------
 col1, col2 = st.columns([0.92, 0.08])
 
 with col1:
@@ -143,9 +123,7 @@ with col2:
         st.session_state.show_menu = not st.session_state.show_menu
 
 # ---------------- FILE UPLOAD ----------------
-file_content = None
-
-if st.session_state.get("show_menu", False):
+if st.session_state.show_menu:
     st.markdown("---")
     st.markdown("### 📎 Upload File")
 
@@ -155,46 +133,65 @@ if st.session_state.get("show_menu", False):
         key=f"uploaded_file_{st.session_state.current_chat}"
     )
 
-    if uploaded_file and not st.session_state.file_processed:
+    if uploaded_file:
         file_content = uploaded_file.read().decode("utf-8")
+
+        if st.button("📤 Send File"):
+            st.session_state.file_content = file_content
+            st.session_state.process_file = True
+            st.rerun()
 
     if st.button("❌ Close Upload"):
         st.session_state.show_menu = False
 
 # ---------------- FINAL INPUT ----------------
-final_input = user_input if user_input else None
+final_input = None
 
-if file_content:
-    final_input = file_content
+if st.session_state.process_file:
+    final_input = st.session_state.file_content
+elif user_input:
+    final_input = user_input
 
-
-if "last_processed" not in st.session_state:
-    st.session_state.last_processed = None
 # ---------------- PROCESS ----------------
-if (final_input is not None and st.session_state.current_chat is not None  and final_input != st.session_state.last_processed ):
-    st.session_state.last_processed = final_input
-    if file_content:
-        st.session_state.file_processed = True
+if final_input is not None and st.session_state.current_chat is not None:
 
-    # save user message
-    add_user_message(st.session_state.current_chat, final_input)
+    # 🔥 FILE FLOW (always process)
+    if st.session_state.process_file:
 
-    # fetch updated messages
-    messages = fetch_messages(st.session_state.current_chat)
+        st.session_state.process_file = False
+        st.session_state.file_content = None
 
-    # update title (first message only)
-    if len(messages) == 1:
-        from services.chat_service import update_chat_title
-        update_chat_title(st.session_state.current_chat, final_input[:30])
+        add_user_message(st.session_state.current_chat, final_input)
 
-    # get AI response
-    ai_reply = get_ai_response(messages)
+        messages = fetch_messages(st.session_state.current_chat)
 
-    # save AI response
-    add_ai_message(st.session_state.current_chat, ai_reply)
+        if len(messages) == 1:
+            from services.chat_service import update_chat_title
+            update_chat_title(st.session_state.current_chat, final_input[:30])
 
-    # reset UI
-    st.session_state.show_menu = False
-    #st.session_state["chat_input_main"] = ""
+        ai_reply = get_ai_response(messages)
 
-    st.rerun()
+        add_ai_message(st.session_state.current_chat, ai_reply)
+
+        st.session_state.show_menu = False
+        st.rerun()
+
+    # 🔥 TEXT FLOW (avoid duplicates)
+    elif final_input != st.session_state.last_processed:
+
+        st.session_state.last_processed = final_input
+
+        add_user_message(st.session_state.current_chat, final_input)
+
+        messages = fetch_messages(st.session_state.current_chat)
+
+        if len(messages) == 1:
+            from services.chat_service import update_chat_title
+            update_chat_title(st.session_state.current_chat, final_input[:30])
+
+        ai_reply = get_ai_response(messages)
+
+        add_ai_message(st.session_state.current_chat, ai_reply)
+
+        st.session_state.show_menu = False
+        st.rerun()
