@@ -35,3 +35,7 @@ def update_chat_title(chat_id, title):
     conn.commit()
     cursor.close()
     conn.close()
+    
+def fetch_archived_chats(user_id):
+    from services.db_service import get_archived_chats
+    return get_archived_chats(user_id)

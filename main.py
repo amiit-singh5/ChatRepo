@@ -5,7 +5,8 @@ from services.chat_service import (
     add_user_message,
     add_ai_message,
     fetch_messages,
-    fetch_user_chats
+    fetch_user_chats,
+    fetch_archived_chats
 )
 from services.llm_service import get_ai_response
 
@@ -29,7 +30,12 @@ if "show_menu" not in st.session_state:
 
 # ---------------- SIDEBAR ----------------
 st.sidebar.subheader("Chats")
+st.sidebar.subheader("Archived Chats")
+archived_chats = fetch_archived_chats(user_id)
 
+for chat in archived_chats:
+    if st.sidebar.button(f"📦 {chat['title']}", key=f"arch_{chat['id']}"):
+        st.session_state.current_chat = chat["id"]
 if st.sidebar.button("➕ New Chat"):
     chat_id = start_new_chat(user_id)
     st.session_state.current_chat = chat_id
@@ -89,6 +95,10 @@ for chat in user_chats:
                 from services.db_service import archive_chat
                 archive_chat(chat["id"])
                 st.rerun()
+            if st.button("♻️ Restore", key=f"restore_{chat['id']}"):
+               from services.db_service import restore_chat
+               restore_chat(chat["id"])
+               st.rerun()
         st.session_state.file_processed = False
         st.session_state.show_menu = False
 

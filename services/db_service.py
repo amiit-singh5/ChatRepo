@@ -102,5 +102,36 @@ def archive_chat(chat_id):
     cursor.close()
     conn.close()
 
+def get_archived_chats(user_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+    SELECT id, title 
+    FROM chats 
+    WHERE user_id=%s AND archived=TRUE
+    """
+
+    cursor.execute(query, (user_id,))
+    chats = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return chats
+
+def restore_chat(chat_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE chats SET archived=FALSE WHERE id=%s",
+        (chat_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 
 
