@@ -1,10 +1,5 @@
 import streamlit as st
-
-# dummy users (later replace with DB)
-USERS = {
-    "admin": "1234",
-    "amit": "pass"
-}
+from services.db_service import verify_user
 
 def login():
     if "authenticated" not in st.session_state:
@@ -19,9 +14,12 @@ def login():
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if username in USERS and USERS[username] == password:
+        user_id = verify_user(username, password)
+
+        if user_id:
             st.session_state.authenticated = True
             st.session_state.user = username
+            st.session_state.user_id = user_id
             st.success("Login successful")
             st.rerun()
         else:

@@ -12,7 +12,13 @@ This app allows users to interact with LLM models like LLaMA in a ChatGPT-like i
 - Supports OpenRouter models (LLaMA, Mistral, etc.)
 - Secure API key handling via environment variables
 - Auto-scroll chat window
-- Easy to extend for multi-user support
+following production-grade features has been added:
+1. Login with DB
+2. Password hashing (bcrypt)
+3. User isolation (user_id)
+4. Separate chats per user
+5. Archive / restore
+6. File + text input handling
 
 ---
 
